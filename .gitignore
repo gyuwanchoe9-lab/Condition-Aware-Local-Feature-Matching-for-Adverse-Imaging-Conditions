@@ -1,0 +1,32 @@
+# Data
+data/hpatches/
+data/augmented/
+data/*.zip
+data/*.tar.gz
+data/hpatches-dataset/
+
+# Results
+results/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Env
+.env
+*.env
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
