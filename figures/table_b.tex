@@ -1,0 +1,25 @@
+\documentclass{article}
+\usepackage{booktabs}
+\usepackage{colortbl}
+\usepackage[table]{xcolor}
+\usepackage[margin=1in]{geometry}
+\begin{document}
+
+\begin{table}[h]
+\centering
+\caption{Full Pipeline MAA@3px by Condition (avg. over severity)}
+\begin{tabular}{lcccc}
+\toprule
+Method & Normal & Low-light & Motion-blur & Combined \\
+\midrule
+SIFT & 0.393 & 0.280 & 0.392 & 0.297 \\
+ORB & 0.339 & 0.258 & 0.328 & 0.254 \\
+SP+NN & 0.471 & 0.370 & 0.420 & 0.341 \\
+SP+LG & 0.545 & 0.476 & 0.497 & 0.440 \\
+LoFTR & \textbf{0.771} & \textbf{0.646} & \textbf{0.753} & \textbf{0.642} \\
+\rowcolor{blue!8} Hybrid (Ours) & 0.566 & 0.606 & 0.625 & 0.594 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\end{document}

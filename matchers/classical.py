@@ -7,14 +7,19 @@ def _to_gray(img: np.ndarray) -> np.ndarray:
 
 
 def _kpts_to_array(kpts) -> np.ndarray:
+    if len(kpts) == 0:
+        return np.empty((0, 2), dtype=np.float32)
     return np.array([[k.pt[0], k.pt[1]] for k in kpts], dtype=np.float32)
 
 
 def _assign_descs_by_nearest(query_kpts: np.ndarray, ref_kpts: np.ndarray, ref_descs: np.ndarray) -> np.ndarray:
     """query_kpts 각각에 대해 ref_kpts 중 가장 가까운 keypoint의 descriptor를 할당."""
-    if len(ref_kpts) == 0:
-        return np.zeros((len(query_kpts), ref_descs.shape[1]), dtype=np.float32)
-    dists = np.linalg.norm(query_kpts[:, None] - ref_kpts[None], axis=2)  # (N, M)
+    if len(query_kpts) == 0 or len(ref_kpts) == 0:
+        dim = ref_descs.shape[1] if ref_descs.ndim == 2 else 256
+        return np.zeros((len(query_kpts), dim), dtype=np.float32)
+    q = query_kpts.reshape(-1, 2)
+    r = ref_kpts.reshape(-1, 2)
+    dists = np.linalg.norm(q[:, None] - r[None], axis=2)  # (N, M)
     nn_idx = dists.argmin(axis=1)
     return ref_descs[nn_idx]
 
@@ -32,9 +37,9 @@ class SIFTMatcher:
     def __init__(self, n_features=2000):
         self.sift = cv2.SIFT_create(nfeatures=n_features)
 
-    def detect(self, img: np.ndarray):
+    def detect(self, img: np.ndarray) -> np.ndarray:
         kpts = self.sift.detect(_to_gray(img))
-        return _kpts_to_array(kpts), kpts
+        return _kpts_to_array(kpts)
 
     def describe(self, img: np.ndarray, kpts_cv):
         _, descs = self.sift.compute(_to_gray(img), kpts_cv)
@@ -58,9 +63,9 @@ class ORBMatcher:
     def __init__(self, n_features=2000):
         self.orb = cv2.ORB_create(nfeatures=n_features)
 
-    def detect(self, img: np.ndarray):
+    def detect(self, img: np.ndarray) -> np.ndarray:
         kpts = self.orb.detect(_to_gray(img))
-        return _kpts_to_array(kpts), kpts
+        return _kpts_to_array(kpts)
 
     def describe(self, img: np.ndarray, kpts_cv):
         _, descs = self.orb.compute(_to_gray(img), kpts_cv)

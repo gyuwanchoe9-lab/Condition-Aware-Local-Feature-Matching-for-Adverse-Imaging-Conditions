@@ -21,3 +21,4 @@ class HybridMatcher:
         result = matcher.match(img0, img1)
         result['method_used'] = 'loftr' if cond == 'degraded' else 'sp+lg'
         return result
+

@@ -1,3 +1,6 @@
+# PDF
+*.pdf
+
 # Data
 data/hpatches/
 data/augmented/

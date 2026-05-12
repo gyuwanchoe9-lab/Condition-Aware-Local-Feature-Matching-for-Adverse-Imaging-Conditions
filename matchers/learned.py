@@ -89,10 +89,21 @@ class LoFTRMatcher:
         self.device = device
         self.loftr = KF.LoFTR(pretrained=pretrained).eval().to(device)
 
+    @staticmethod
+    def _resize(img: np.ndarray, max_side: int = 640) -> np.ndarray:
+        h, w = img.shape[:2]
+        scale = min(max_side / max(h, w), 1.0)
+        if scale < 1.0:
+            img = cv2.resize(img, (int(w * scale), int(h * scale)))
+        h, w = img.shape[:2]
+        return img[:h - h % 8, :w - w % 8]
+
     @torch.no_grad()
     def match(self, img0: np.ndarray, img1: np.ndarray) -> dict:
-        t0 = _np_to_tensor(_to_gray(img0), self.device)
-        t1 = _np_to_tensor(_to_gray(img1), self.device)
+        img0 = self._resize(_to_gray(img0))
+        img1 = self._resize(_to_gray(img1))
+        t0 = _np_to_tensor(img0, self.device)
+        t1 = _np_to_tensor(img1, self.device)
         out = self.loftr({'image0': t0, 'image1': t1})
 
         kpts0 = out['keypoints0'].cpu().numpy()
@@ -100,3 +111,5 @@ class LoFTRMatcher:
         n = len(kpts0)
         matches = np.stack([np.arange(n), np.arange(n)], axis=1)
         return {'kpts0': kpts0, 'kpts1': kpts1, 'matches': matches}
+
+

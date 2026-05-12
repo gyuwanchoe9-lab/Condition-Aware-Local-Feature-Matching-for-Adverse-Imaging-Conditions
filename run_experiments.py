@@ -13,6 +13,7 @@ import argparse
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(__file__))
 
@@ -91,8 +92,10 @@ def run_detector_table(detector_matchers, pairs_base):
 
 
 def run_pipeline_table(pipeline_matchers, pairs_base):
+    import torch
     rows = []
     for name, matcher in pipeline_matchers.items():
+        torch.cuda.empty_cache()
         for condition in ['normal', 'low_light', 'motion_blur', 'combined']:
             for sev in ([0] if condition == 'normal' else SEVERITIES):
                 if condition == 'normal':
@@ -126,17 +129,30 @@ def main():
         global CONDITIONS
         CONDITIONS = [args.condition]
 
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M')
+    n_pairs   = len(pairs_base)
+
     if detector_matchers:
         df_det = run_detector_table(detector_matchers, pairs_base)
-        path = os.path.join(RESULTS_DIR, 'detector_results.csv')
+        path = os.path.join(RESULTS_DIR, f'detector_{n_pairs}pairs_{timestamp}.csv')
         df_det.to_csv(path, index=False)
         print(f"\nSaved: {path}")
 
     if pipeline_matchers:
         df_pipe = run_pipeline_table(pipeline_matchers, pairs_base)
-        path = os.path.join(RESULTS_DIR, 'pipeline_results.csv')
+        path = os.path.join(RESULTS_DIR, f'pipeline_{n_pairs}pairs_{timestamp}.csv')
         df_pipe.to_csv(path, index=False)
         print(f"\nSaved: {path}")
+
+    print("\nGenerating figures...")
+    import plot_results
+    df_all = df_pipe if pipeline_matchers else None
+    if df_all is not None:
+        df_all['method'] = df_all['method'].str.lower().str.strip()
+        plot_results.plot_table_b(df_all)
+        plot_results.plot_severity_curves(df_all)
+        plot_results.plot_cross_heatmap(df_all)
+        plot_results.export_latex_table_b(df_all)
 
     print("\nDone.")
 
