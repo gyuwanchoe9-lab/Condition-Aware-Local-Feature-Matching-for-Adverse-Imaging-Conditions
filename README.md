@@ -4,102 +4,65 @@
 
 ---
 
-## What is this?
+## 개요
 
- 카메라로 촬영한 **저조도·모션블러·노이즈 환경**에서 두 이미지 간 특징점 매칭 성능을 체계적으로 분석하고, 입력 영상의 상태를 자동으로 판별해 최적 matcher를 선택하는 **Condition-Aware Hybrid Matcher**를 제안합니다.
+HPatches 데이터셋을 기반으로 **4가지 특징점 매칭 알고리즘**의 성능을 비교하고, 이미지의 내재적 조건(밝기, 블러, 노이즈)에 따라 어떤 알고리즘이 최적인지를 분류·분석하는 프로젝트입니다.
 
-### 왜 이게 필요한가?
-
-SuperPoint(DeTone et al., 2018)는 학습 시 blur·저조도·노이즈 augmentation을 사용했다고 명시하지만, **평가는 clean 이미지에서만** 진행했습니다. 실제 악조건에서 어떤 matcher가 얼마나, 그리고 **어느 부분(detector vs descriptor)이 먼저 무너지는지**에 대한 분석이 없습니다.
-
-본 프로젝트는 이 빈틈을 다음 세 질문으로 채웁니다:
-
-1. 악조건에서 각 matcher의 성능 하락 폭은 얼마나 되는가?
-2. Detector가 먼저 무너지는가, Descriptor가 먼저 무너지는가?
-3. 조건을 자동 판별해 최적 matcher를 선택하면 성능이 개선되는가?
+> *하이브리드 매처처럼 알고리즘을 직접 혼합하는 것이 아니라, 조건별 알고리즘 선택 분포를 통해 "어떤 상황에서 어떤 알고리즘이 유리한가"를 분석하는 것이 목표입니다.*
 
 ---
 
-## Methods
+## Algorithms
 
-| 카테고리 | 모델 | 역할 |
-| --- | --- | --- |
-| Classical | SIFT, ORB | Baseline |
-| Learned full | SuperPoint + Mutual NN | SP 논문 원본 셋업 |
-| Modern learned | SuperPoint + LightGlue | 현재 SOTA |
-| Detector-free | LoFTR | 다른 패러다임 비교 |
-| Cross-combination | SP det + SIFT desc, SIFT det + SP desc | Detector vs Descriptor 분해 분석 |
-| **Ours** | **Condition-Aware Hybrid** | IQA → SP+LG or LoFTR 자동 선택 |
+| 카테고리 | 알고리즘 |
+| --- | --- |
+| Classical | SIFT, ORB |
+| Deep Learning | LoFTR, SuperPoint + LightGlue |
 
 ---
 
-## Key Results
-
-### Detector Repeatability (580 pairs, HPatches)
-
-| Detector | Normal | Low-light sev3 | Motion-blur sev3 | Combined sev3 |
-| --- | --- | --- | --- | --- |
-| DoG (SIFT) | 0.433 | 0.348 | 0.330 | 0.272 |
-| FAST (ORB) | 0.625 | 0.557 | 0.492 | 0.433 |
-| SuperPoint | 0.511 | 0.426 | 0.401 | 0.349 |
-
-> FAST가 repeatability는 가장 높지만 이것이 매칭 성능으로 이어지지 않음 — SuperPoint 논문과 동일한 관찰.
-
-### Full Pipeline MAA@3px
-
-| Method | Normal | Low-light | Motion-blur | Combined |
-| --- | --- | --- | --- | --- |
-| SIFT | 0.357 | 0.242 | 0.273 | 0.216 |
-| ORB | 0.306 | 0.234 | 0.227 | 0.170 |
-| SP + NN | 0.364 | 0.281 | 0.264 | 0.210 |
-| SP + LightGlue | 0.448 | 0.379 | 0.326 | 0.283 |
-| LoFTR | - | - | - | - |
-| **Hybrid (Ours)** | - | - | - | - |
-
-> 전체 580 pairs 결과로 업데이트 예정
-
----
-
-## Proposed Method — Condition-Aware Hybrid
+## Pipeline
 
 ```text
-Input Image Pair
-      │
-      ▼
-┌─────────────────────┐
-│  Image Quality      │  brightness + Laplacian variance
-│  Assessor (IQA)     │
-└────────┬────────────┘
-         │ normal / degraded
+1. Label Generation
+   HPatches 이미지 쌍
+         │
          ▼
-    ┌────┴──────────────────┐
-    │                       │
-    ▼                       ▼
-SP + LightGlue           LoFTR
-(조건 양호)             (저조도 / 블러)
-    │                       │
-    └──────────┬────────────┘
-               ▼
-         Matches + Homography
-```
+   4개 알고리즘 각각 매칭
+         │
+         ▼
+   MMA@3px 스코어 → normalize → argmax
+         │
+         ▼
+   GT 라벨 (0=SIFT / 1=ORB / 2=LoFTR / 3=SP+LG)
 
-- **IQA**: brightness(저조도) + Laplacian variance(블러) 두 통계로 조건 판별
-- **Gating**: Decision Tree, 임계값은 HPatches validation split에서 grid search로 결정
-- **근거**: 악조건에서 keypoint가 부족할 때 detector-free(LoFTR)가 유리, 조건이 충분하면 SP+LG가 속도·정확도 모두 우수
+2. Classification
+   이미지 쌍 (img0, img1)
+         │
+         ▼
+   ResNet18 기반 PairClassifier
+         │
+         ▼
+   예측 라벨 vs GT 라벨 → loss, accuracy
+
+3. Condition Analysis
+   이미지에서 brightness / blur / noise 수치 추출
+         │
+         ▼
+   조건 구간별 알고리즘 선택 분포 시각화
+```
 
 ---
 
 ## Data
 
-- **HPatches** 116 scenes × 5 pairs = **580 pairs** (GT homography 포함)
-- 합성 augmentation: Low-light / Motion-blur / Gaussian noise / Combined, severity 1–3
+- **HPatches**: 116 scenes × 5 pairs = **580 pairs** (GT homography 포함)
+- 80/20 시퀀스 단위 split (train: 93 scenes / eval: 23 scenes)
 
 ```bash
-# HPatches 다운로드 (1.3GB)
 cd data
 wget https://huggingface.co/datasets/vbalnt/hpatches/resolve/main/hpatches-sequences-release.zip
-unzip hpatches-sequences-release.zip -d hpatches_tmp
-mv hpatches_tmp/hpatches-sequences-release/* hpatches/
+unzip hpatches-sequences-release.zip
 ```
 
 ---
@@ -107,7 +70,7 @@ mv hpatches_tmp/hpatches-sequences-release/* hpatches/
 ## Setup
 
 ```bash
-pip install kornia git+https://github.com/cvg/LightGlue.git
+pip install torch torchvision kornia git+https://github.com/cvg/LightGlue.git matplotlib
 ```
 
 ---
@@ -115,20 +78,15 @@ pip install kornia git+https://github.com/cvg/LightGlue.git
 ## Run
 
 ```bash
-# 전체 실험 + figure 자동 생성
-python run_experiments.py
+# 1. GT 라벨 생성 (580쌍 × 4알고리즘, 오래 걸림)
+python generate_labels.py
 
-# 빠른 테스트 (10쌍)
-python run_experiments.py --max_pairs 10
+# 2. 분류 모델 학습
+python train.py
 
-# figure만 재생성
-python plot_results.py
-
-# 매칭 결과 시각화
-python visualize.py --scene i_ajuntament
+# 3. 조건별 분포 분석 및 시각화
+python analysis.py
 ```
-
-결과는 `results/pipeline_{N}pairs_{timestamp}.csv`, figure는 `figures/`에 저장됩니다.
 
 ---
 
@@ -136,22 +94,22 @@ python visualize.py --scene i_ajuntament
 
 ```text
 .
-├── augment.py          # Synthetic augmentation (low-light, blur, noise)
-├── iqa.py              # Image Quality Assessor
-├── run_experiments.py  # 실험 실행
-├── plot_results.py     # CSV → 논문용 figure 생성
-├── visualize.py        # 이미지 매칭 결과 시각화
+├── generate_labels.py   # GT 라벨 생성
+├── train.py             # PairClassifier 학습
+├── analysis.py          # 조건별 알고리즘 선택 분포 분석
+├── iqa.py               # brightness / blur / noise 수치 추출
 ├── matchers/
-│   ├── classical.py    # SIFT, ORB, Cross-combination
-│   ├── learned.py      # SuperPoint, SP+LightGlue, LoFTR
-│   └── hybrid.py       # Condition-Aware Hybrid (본 기여)
+│   ├── classical.py     # SIFT, ORB
+│   └── learned.py       # LoFTR, SP+LightGlue
 ├── eval/
-│   ├── metrics.py      # Repeatability, MMA, MAA, Inlier Ratio
-│   ├── hpatches.py     # HPatches 데이터 로더
-│   └── run_eval.py     # Level 1 / Level 3 평가
-├── data/hpatches/      # HPatches 데이터 (gitignore)
-├── results/            # CSV 결과 (gitignore)
-└── figures/            # 생성된 figure
+│   ├── metrics.py       # MMA 계산
+│   └── hpatches.py      # HPatches 데이터 로더
+├── model/
+│   ├── model.py         # PairClassifier (ResNet18 기반)
+│   └── dataset.py       # 이미지 쌍 Dataset / split
+├── labels/
+│   └── labels.json      # 생성된 GT 라벨
+└── figures/             # 분석 결과 시각화
 ```
 
 ---
