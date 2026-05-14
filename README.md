@@ -6,7 +6,7 @@
 
 ## What is this?
 
-핸드헬드 카메라로 촬영한 **저조도·모션블러·노이즈 환경**에서 두 이미지 간 특징점 매칭 성능을 체계적으로 분석하고, 입력 영상의 상태를 자동으로 판별해 최적 matcher를 선택하는 **Condition-Aware Hybrid Matcher**를 제안합니다.
+ 카메라로 촬영한 **저조도·모션블러·노이즈 환경**에서 두 이미지 간 특징점 매칭 성능을 체계적으로 분석하고, 입력 영상의 상태를 자동으로 판별해 최적 matcher를 선택하는 **Condition-Aware Hybrid Matcher**를 제안합니다.
 
 ### 왜 이게 필요한가?
 
@@ -107,7 +107,6 @@ mv hpatches_tmp/hpatches-sequences-release/* hpatches/
 ## Setup
 
 ```bash
-conda activate research
 pip install kornia git+https://github.com/cvg/LightGlue.git
 ```
 
