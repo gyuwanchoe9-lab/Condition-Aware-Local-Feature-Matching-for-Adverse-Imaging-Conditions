@@ -58,15 +58,28 @@ def main():
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
     criterion = nn.CrossEntropyLoss()
 
-    for epoch in range(20):
+    best_loss = float('inf')
+    patience, wait = 5, 0
+
+    for epoch in range(50):
         tr_loss, tr_acc = run_epoch(model, train_loader, criterion, device, optimizer)
         ev_loss, ev_acc = run_epoch(model, eval_loader,  criterion, device)
         print(f"Epoch {epoch+1:2d} | "
               f"train loss {tr_loss:.4f} acc {tr_acc:.3f} | "
               f"eval  loss {ev_loss:.4f} acc {ev_acc:.3f}")
 
-    torch.save(model.state_dict(), 'model/weights.pth')
-    print("Saved model/weights.pth")
+        # eval loss 기준 best 모델 저장
+        if ev_loss < best_loss:
+            best_loss = ev_loss
+            wait = 0
+            torch.save(model.state_dict(), 'model/weights.pth')
+        else:
+            wait += 1
+            if wait >= patience:
+                print(f"Early stopping at epoch {epoch+1}")
+                break
+
+    print(f"Best eval loss: {best_loss:.4f} | Saved model/weights.pth")
 
 
 if __name__ == '__main__':
