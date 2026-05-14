@@ -40,7 +40,7 @@ def normalize(scores: np.ndarray) -> np.ndarray:
 
 def main():
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    data_dir = 'data/hpatches-dataset/hpatches-sequences-release'
+    data_dir = 'data/hpatches'
 
     pairs = load_hpatches(data_dir)
     print(f"Loaded {len(pairs)} pairs")

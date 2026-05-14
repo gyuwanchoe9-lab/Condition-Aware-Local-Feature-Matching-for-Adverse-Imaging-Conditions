@@ -44,7 +44,7 @@ def run_epoch(model, loader, criterion, device, optimizer=None):
 def main():
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-    pairs = load_hpatches('data/hpatches-dataset/hpatches-sequences-release')
+    pairs = load_hpatches('data/hpatches')
     with open('labels/labels.json') as f:
         labels = json.load(f)
 

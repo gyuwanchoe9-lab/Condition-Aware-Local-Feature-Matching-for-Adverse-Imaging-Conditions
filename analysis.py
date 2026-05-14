@@ -51,7 +51,7 @@ def plot_distribution(conditions: list, labels: list, cond_name: str, n_bins: in
 
 
 def main():
-    pairs = load_hpatches('data/hpatches-dataset/hpatches-sequences-release')
+    pairs = load_hpatches('data/hpatches')
     with open('labels/labels.json') as f:
         label_recs = json.load(f)
 
