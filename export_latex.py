@@ -3,6 +3,8 @@
 실행: python export_latex.py
 """
 import json
+import os
+import sys
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
@@ -81,6 +83,61 @@ def print_distribution_table(label_records: list):
     print(r"\end{table}")
 
 
+def print_matcher_eval_tables(summary: dict):
+    """MMA / AUC / Repeatability LaTeX 테이블 출력."""
+    # MMA
+    print("% ── MMA Table ────────────────────────────────────────")
+    print(r"\begin{table}[h]")
+    print(r"\centering")
+    print(r"\caption{Mean Matching Accuracy (MMA) on HPatches}")
+    print(r"\begin{tabular}{lccc}")
+    print(r"\hline")
+    print(r"\textbf{Method} & \textbf{MMA@1} & \textbf{MMA@3} & \textbf{MMA@5} \\")
+    print(r"\hline")
+    for name in MATCHER_NAMES:
+        s = summary[name]
+        print(f"{name} & {s['mma@1']:.3f} & {s['mma@3']:.3f} & {s['mma@5']:.3f} \\\\")
+    print(r"\hline")
+    print(r"\end{tabular}")
+    print(r"\end{table}")
+    print()
+
+    # AUC
+    print("% ── AUC Table ────────────────────────────────────────")
+    print(r"\begin{table}[h]")
+    print(r"\centering")
+    print(r"\caption{AUC of Cumulative Error Distribution on HPatches}")
+    print(r"\begin{tabular}{lccc}")
+    print(r"\hline")
+    print(r"\textbf{Method} & \textbf{AUC@3} & \textbf{AUC@5} & \textbf{AUC@10} \\")
+    print(r"\hline")
+    for name in MATCHER_NAMES:
+        s = summary[name]
+        print(f"{name} & {s['auc@3']:.3f} & {s['auc@5']:.3f} & {s['auc@10']:.3f} \\\\")
+    print(r"\hline")
+    print(r"\end{tabular}")
+    print(r"\end{table}")
+    print()
+
+    # Repeatability
+    print("% ── Repeatability Table ──────────────────────────────")
+    print(r"\begin{table}[h]")
+    print(r"\centering")
+    print(r"\caption{Repeatability@3px on HPatches (LoFTR: detector-free, N/A)}")
+    print(r"\begin{tabular}{lc}")
+    print(r"\hline")
+    print(r"\textbf{Method} & \textbf{Rep@3} \\")
+    print(r"\hline")
+    for name in MATCHER_NAMES:
+        rep = summary[name]['rep@3']
+        val = f"{rep:.3f}" if rep is not None else "N/A"
+        print(f"{name} & {val} \\\\")
+    print(r"\hline")
+    print(r"\end{tabular}")
+    print(r"\end{table}")
+    print()
+
+
 def main():
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -98,7 +155,12 @@ def main():
     acc = (preds == true_labels).mean()
     metrics = compute_metrics(preds, true_labels)
 
-    import os, sys
+    matcher_summary = None
+    matcher_json = 'results/matcher_eval.json'
+    if os.path.exists(matcher_json):
+        with open(matcher_json) as f:
+            matcher_summary = json.load(f)
+
     os.makedirs('results', exist_ok=True)
     out_path = 'results/latex_tables.tex'
 
@@ -111,6 +173,9 @@ def main():
         print_metrics_table(metrics, acc)
         print_confusion_matrix_table(metrics['confusion_matrix'])
         print_distribution_table(label_records)
+        if matcher_summary:
+            print()
+            print_matcher_eval_tables(matcher_summary)
         print()
         print(r"\end{document}")
         sys.stdout = sys.__stdout__

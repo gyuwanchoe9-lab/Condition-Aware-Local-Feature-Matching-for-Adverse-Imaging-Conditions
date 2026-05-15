@@ -106,7 +106,11 @@ python train.py
 # 3. 조건별 분포 분석 및 시각화
 python analysis.py
 
-# 4. LaTeX 테이블 생성 (results/latex_tables.tex)
+# 4. 알고리즘 자체 매칭 성능 평가 (MMA / AUC / Repeatability)
+# → results/matcher_eval.json 생성 (export_latex.py에서 사용)
+python eval_matchers.py
+
+# 5. LaTeX 테이블 생성 (results/latex_tables.tex)
 python export_latex.py
 ```
 
@@ -119,13 +123,14 @@ python export_latex.py
 ├── generate_labels.py   # GT 라벨 생성 (증강 포함)
 ├── train.py             # PairClassifier 학습 + 성능 평가
 ├── analysis.py          # 조건별 알고리즘 선택 분포 분석
+├── eval_matchers.py     # 알고리즘 자체 매칭 성능 평가 (MMA/AUC/Repeatability)
 ├── export_latex.py      # 성능 지표 LaTeX 테이블 생성
 ├── iqa.py               # brightness / blur / noise 수치 추출
 ├── matchers/
 │   ├── classical.py     # SIFT, ORB
 │   └── learned.py       # LoFTR, SP+LightGlue
 ├── eval/
-│   ├── metrics.py       # MMA 계산
+│   ├── metrics.py       # MMA / AUC / Repeatability 계산
 │   └── hpatches.py      # HPatches 데이터 로더
 ├── model/
 │   ├── model.py         # PairClassifier (ResNet18 기반)
