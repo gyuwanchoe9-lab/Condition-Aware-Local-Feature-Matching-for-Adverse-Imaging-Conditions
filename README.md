@@ -118,6 +118,53 @@ python analysis.py
 
 ---
 
+## Evaluation Metrics
+
+### Loss (CrossEntropy)
+
+$$L = -\frac{1}{N}\sum_{i=1}^{N} \log p(y_i)$$
+
+- $p(y_i)$: 정답 클래스에 대한 예측 확률. 낮을수록 좋음.
+
+### Accuracy
+
+$$\text{Accuracy} = \frac{TP + TN}{N}$$
+
+- 전체 샘플 중 맞춘 비율. 클래스 불균형 시 신뢰도 낮음.
+
+### Precision (클래스 c)
+
+$$\text{Precision}_c = \frac{TP_c}{TP_c + FP_c}$$
+
+- $TP_c$: c라고 예측 & 실제 c / $FP_c$: c라고 예측했지만 실제론 c가 아님
+- 예측의 신뢰도
+
+### Recall (클래스 c)
+
+$$\text{Recall}_c = \frac{TP_c}{TP_c + FN_c}$$
+
+- $FN_c$: 실제 c인데 다른 클래스로 예측
+- 실제 케이스를 얼마나 놓치지 않았는지
+
+### F1 (클래스 c)
+
+$$F1_c = 2 \times \frac{\text{Precision}_c \times \text{Recall}_c}{\text{Precision}_c + \text{Recall}_c}$$
+
+- Precision과 Recall의 조화평균. 불균형 데이터에서 Accuracy 대신 사용.
+
+### Macro F1
+
+$$\text{Macro F1} = \frac{1}{C}\sum_{c=1}^{C} F1_c$$
+
+- 클래스별 F1의 단순 평균. 샘플이 적은 클래스도 동등하게 반영.
+
+### Confusion Matrix
+
+- 행: 실제 라벨 / 열: 예측 라벨
+- 어떤 알고리즘을 어떤 알고리즘으로 혼동하는지 시각화.
+
+---
+
 ## References
 
 - DeTone et al., *SuperPoint*, CVPRW 2018
