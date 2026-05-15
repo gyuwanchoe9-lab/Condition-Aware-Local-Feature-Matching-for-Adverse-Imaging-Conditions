@@ -128,9 +128,14 @@ def main():
     train_loader = DataLoader(PairDataset(train_samples), batch_size=16, shuffle=True,  num_workers=4)
     eval_loader  = DataLoader(PairDataset(eval_samples),  batch_size=16, shuffle=False, num_workers=4)
 
+    # 클래스별 샘플 수에 반비례하는 가중치 계산
+    all_labels = [s[1]['label'] for s in train_samples]
+    class_counts = np.bincount(all_labels, minlength=4).astype(float)
+    class_weights = torch.tensor(len(all_labels) / (4 * class_counts), dtype=torch.float).to(device)
+
     model     = PairClassifier().to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.CrossEntropyLoss(weight=class_weights)
 
     best_loss = float('inf')
     patience, wait = 5, 0

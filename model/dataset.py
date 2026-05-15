@@ -41,6 +41,7 @@ def get_split(pairs: list, label_records: list, train_ratio: float = 0.8):
     같은 시퀀스의 모든 증강 샘플이 같은 split에 들어가도록 leakage 방지.
     """
     scenes = sorted(set(p['scene'] for p in pairs))
+    random.shuffle(scenes)  # 클래스가 split에 고르게 분포되도록 shuffle
     train_scenes = set(scenes[:int(len(scenes) * train_ratio)])
 
     # pair_id → raw pair 매핑

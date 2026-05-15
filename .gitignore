@@ -10,6 +10,11 @@ data/hpatches-dataset/
 
 # Results
 results/
+figures/
+
+# Model weights
+model/weights.pth
+*.pth
 
 # Python
 __pycache__/
