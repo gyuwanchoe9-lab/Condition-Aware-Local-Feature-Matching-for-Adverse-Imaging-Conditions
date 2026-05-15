@@ -1,31 +1,66 @@
+import random
 import cv2
+import numpy as np
 import torch
 from torch.utils.data import Dataset
 import torchvision.transforms as T
 
 
-def get_split(pairs: list, labels: list, train_ratio: float = 0.8):
+# ── 증강 함수 (generate_labels.py와 동일) ────────────────────────────────────
+
+def aug_brightness(img: np.ndarray) -> np.ndarray:
+    factor = random.uniform(0.2, 0.7)
+    return np.clip(img.astype(np.float32) * factor, 0, 255).astype(np.uint8)
+
+
+def aug_motion_blur(img: np.ndarray) -> np.ndarray:
+    size = random.choice([9, 15, 21])
+    angle = random.uniform(0, 180)
+    kernel = np.zeros((size, size), dtype=np.float32)
+    kernel[size // 2, :] = 1.0
+    M = cv2.getRotationMatrix2D((size / 2, size / 2), angle, 1)
+    kernel = cv2.warpAffine(kernel, M, (size, size))
+    kernel /= kernel.sum()
+    return cv2.filter2D(img, -1, kernel)
+
+
+def aug_noise(img: np.ndarray) -> np.ndarray:
+    sigma = random.uniform(20, 60)
+    noise = np.random.randn(*img.shape).astype(np.float32) * sigma
+    return np.clip(img.astype(np.float32) + noise, 0, 255).astype(np.uint8)
+
+
+AUG_FN = {'brightness': aug_brightness, 'blur': aug_motion_blur, 'noise': aug_noise}
+
+
+# ── Split ─────────────────────────────────────────────────────────────────────
+
+def get_split(pairs: list, label_records: list, train_ratio: float = 0.8):
     """
     시퀀스 단위로 train/eval split.
-    같은 시퀀스 내 쌍이 양쪽에 섞이지 않도록 leakage 방지.
+    같은 시퀀스의 모든 증강 샘플이 같은 split에 들어가도록 leakage 방지.
     """
     scenes = sorted(set(p['scene'] for p in pairs))
     train_scenes = set(scenes[:int(len(scenes) * train_ratio)])
 
-    label_map = {r['pair_id']: r for r in labels}
+    # pair_id → raw pair 매핑
+    pair_map = {p['pair_id']: p for p in pairs}
 
     train, eval_ = [], []
-    for p in pairs:
-        if p['pair_id'] not in label_map:
+    for rec in label_records:
+        pair = pair_map.get(rec['pair_id'])
+        if pair is None:
             continue
-        bucket = train if p['scene'] in train_scenes else eval_
-        bucket.append((p, label_map[p['pair_id']]))
+        bucket = train if rec['scene'] in train_scenes else eval_
+        bucket.append((pair, rec))
 
     return train, eval_
 
 
+# ── Dataset ───────────────────────────────────────────────────────────────────
+
 class PairDataset(Dataset):
-    """HPatches 이미지 쌍과 GT 라벨을 반환하는 Dataset."""
+    """HPatches 이미지 쌍에 증강 적용 후 GT 라벨 반환."""
 
     _transform = T.Compose([
         T.ToTensor(),
@@ -41,8 +76,12 @@ class PairDataset(Dataset):
 
     def __getitem__(self, idx):
         pair, rec = self.samples[idx]
-        # BGR → RGB 변환 후 transform 적용
-        img0 = self._transform(cv2.cvtColor(pair['img0'], cv2.COLOR_BGR2RGB))
-        img1 = self._transform(cv2.cvtColor(pair['img1'], cv2.COLOR_BGR2RGB))
-        label = torch.tensor(rec['label'], dtype=torch.long)
-        return img0, img1, label
+        aug_fn = AUG_FN[rec['aug']]
+
+        # 라벨 생성 시와 동일한 증강 타입 적용 (강도는 랜덤)
+        img0 = aug_fn(pair['img0'])
+        img1 = aug_fn(pair['img1'])
+
+        img0 = self._transform(cv2.cvtColor(img0, cv2.COLOR_BGR2RGB))
+        img1 = self._transform(cv2.cvtColor(img1, cv2.COLOR_BGR2RGB))
+        return img0, img1, torch.tensor(rec['label'], dtype=torch.long)
