@@ -20,7 +20,7 @@ from matchers.learned import SPLightGlueMatcher, LoFTRMatcher
 MATCHER_NAMES = ['sift', 'orb', 'loftr', 'splg']
 
 
-# ── 증강 함수 ─────────────────────────────────────────────────────────────────
+# ── augment ─────────────────────────────────────────────────────────────────
 
 def aug_brightness(img: np.ndarray) -> np.ndarray:
     """랜덤 밝기 감소 (factor 0.2~0.7)."""
